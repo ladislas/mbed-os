@@ -149,17 +149,48 @@ class _GccParser(_Parser):
 
         return value - an object file name
         """
+        # cleaned_line = line.replace('CMakeFiles/', '')
+        cleaned_line = line
+
+        # print(f"l0: {line}")
+        # print(f"l1: {cleaned_line}")
+
         if re.match(self.RE_TRANS_FILE, line):
             return '[misc]'
 
-        test_re_mbed_os_name = re.match(self.RE_OBJECT_FILE, line)
+        test_re_mbed_os_name = re.match(self.RE_OBJECT_FILE, cleaned_line)
 
         if test_re_mbed_os_name:
             object_name = test_re_mbed_os_name.group(1)
+            # print(f"l2: {object_name}")
+
+            if 'main.cpp' in object_name:
+                l3 = join('[app]', basename(object_name.replace('.obj', '')))
+                # print(f"l3: {l3}")
+                return l3
 
             # corner case: certain objects are provided by the GCC toolchain
-            if 'arm-none-eabi' in line:
-                return join('[lib]', 'misc', basename(object_name))
+            if 'arm-none-eabi' in object_name:
+                l3 = join('[lib]', 'misc', basename(object_name))
+                # print(f"l3: {l3}")
+                return l3
+
+            # corner case: handle case where mbed-os is not at the root of the project
+            if 'mbed-os' in object_name:
+                # print(f"l3: {object_name}")
+                # return (object_name)
+                # return join('[mbed]', line)
+                # return join('[mbed]', 'ladislas')
+                # l3 = re.sub(r'(.+?mbed-os-obj\.dir\/|.+?mbed-os\/)', '', object_name)
+                # str = re.sub(r'(.+?mbed-os-obj\.dir\/|.+?mbed-os\/)', '[mbed]/', object_name)
+                string = re.sub(r'(.+?mbed-os-obj\.dir\/|.+?mbed-os\/)', '', object_name)
+                l3 = join('[mbed-os]', string)
+                # l3 = join('[porout]', "Je/mappell/ladislas/de/toldi")
+                print(f"l3: {l3}")
+                # return join('[app]', basename(object_name))
+                return l3
+
+
             return object_name
 
         else:
@@ -197,7 +228,9 @@ class _GccParser(_Parser):
         if is_section:
             o_size = int(is_section.group(2), 16)
             if o_size:
+                print(f"is_section.group(3): {is_section.group(3)}")
                 o_name = self.parse_object_name(is_section.group(3))
+                print(f"o_name: {o_name}")
                 return [o_name, o_size]
 
         return ["", 0]
@@ -231,7 +264,7 @@ class _GccParser(_Parser):
             o for o in self.modules.keys()
             if (
                     o.endswith(self.OBJECT_EXTENSIONS)
-                    and not o.startswith("[lib]")
+                    and not re.match(r'\[(lib|mbed-os)\]', o)
             )]))
         new_modules = {}
         for name, stats in self.modules.items():
@@ -310,6 +343,8 @@ class _ArmccParser(_Parser):
             # check name of object or library
             object_name = self.parse_object_name(
                 test_re.group(6))
+
+            print(f"object_name2: {object_name}")
 
             return [object_name, size, section]
 
