@@ -22,6 +22,13 @@
 #include <sys/types.h>
 #include <stdio.h>
 
+#if defined __has_include
+#  if __has_include (<sys/stat.h>)
+#    include <sys/stat.h>
+#    define HAVE_SYS_STAT_H
+#  endif
+#endif
+
 #include <time.h>
 
 namespace mbed {
@@ -362,6 +369,8 @@ namespace mbed {
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
+#ifndef HAVE_SYS_STAT_H
+
 #ifndef _STAT_VER
 struct stat {
     dev_t     st_dev;     ///< Device ID containing file
@@ -378,6 +387,8 @@ struct stat {
     time_t    st_mtime;   ///< Time of last data modification
     time_t    st_ctime;   ///< Time of last status change
 };
+#endif
+
 #endif
 
 struct statvfs {
